@@ -10,7 +10,7 @@ export default defineConfig({
   reporter: [
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
     ['list'],
-    ...(EnvConfig.isCI ? [['github'] as ['github']] : []),
+    ...(EnvConfig.isCI ? [['github'] as ['github'], ['blob'] as ['blob']] : []),
     // Allure reporter — generates rich reports with history, trends, categories
     // View with: npx allure serve allure-results
     ['allure-playwright', { outputFolder: 'allure-results' }],
