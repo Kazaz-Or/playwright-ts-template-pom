@@ -9,6 +9,7 @@
  */
 
 import * as fs from 'fs';
+import logger from '../utils/logger';
 import * as path from 'path';
 import { SlackPayload, TestSummary } from './types';
 
@@ -120,8 +121,8 @@ function buildSlackPayload(summary: TestSummary, runUrl?: string): SlackPayload 
 
 async function sendToSlack(payload: SlackPayload): Promise<void> {
   if (!WEBHOOK_URL) {
-    console.log('[slack-notifier] No SLACK_WEBHOOK_URL set. Printing payload:');
-    console.log(JSON.stringify(payload, null, 2));
+    logger.info('[slack-notifier] No SLACK_WEBHOOK_URL set. Printing payload:');
+    logger.info(JSON.stringify(payload, null, 2));
     return;
   }
 
@@ -132,9 +133,9 @@ async function sendToSlack(payload: SlackPayload): Promise<void> {
   });
 
   if (!response.ok) {
-    console.error(`[slack-notifier] Failed to send: ${response.status} ${response.statusText}`);
+    logger.error(`[slack-notifier] Failed to send: ${response.status} ${response.statusText}`);
   } else {
-    console.log('[slack-notifier] Notification sent successfully');
+    logger.info('[slack-notifier] Notification sent successfully');
   }
 }
 
@@ -145,4 +146,4 @@ async function main() {
   await sendToSlack(payload);
 }
 
-main().catch(console.error);
+main().catch((e) => logger.error(String(e)));

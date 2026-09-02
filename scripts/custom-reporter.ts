@@ -8,6 +8,7 @@
  *   ['./scripts/custom-reporter.ts', { slack: true, llmAnalysis: true }]
  */
 
+import logger from '../utils/logger';
 import type {
   FullConfig,
   FullResult,
@@ -57,31 +58,31 @@ class CustomReporter implements Reporter {
     const duration = Date.now() - this.startTime;
     const total = this.passed + this.failed + this.skipped;
 
-    console.log('\n' + '═'.repeat(60));
-    console.log(
+    logger.info('\n' + '═'.repeat(60));
+    logger.info(
       `  ${result.status === 'passed' ? '✅' : '❌'}  Test Run ${result.status.toUpperCase()}`,
     );
-    console.log('═'.repeat(60));
-    console.log(
+    logger.info('═'.repeat(60));
+    logger.info(
       `  Total: ${total} | Passed: ${this.passed} | Failed: ${this.failed} | Skipped: ${this.skipped}`,
     );
-    console.log(`  Duration: ${(duration / 1000).toFixed(1)}s`);
+    logger.info(`  Duration: ${(duration / 1000).toFixed(1)}s`);
 
     if (this.failures.length > 0) {
-      console.log('\n  Failed Tests:');
+      logger.info('\n  Failed Tests:');
       for (const f of this.failures) {
-        console.log(`    ✘ ${f.test}`);
-        console.log(`      ${f.error}`);
+        logger.info(`    ✘ ${f.test}`);
+        logger.info(`      ${f.error}`);
       }
     }
-    console.log('═'.repeat(60) + '\n');
+    logger.info('═'.repeat(60) + '\n');
 
     // ponytail: Slack + LLM hooks — wire up when deploying to CI
     if (this.options.slack && this.failed > 0) {
-      console.log('[reporter] Slack notification would be sent (set SLACK_WEBHOOK_URL)');
+      logger.info('[reporter] Slack notification would be sent (set SLACK_WEBHOOK_URL)');
     }
     if (this.options.llmAnalysis && this.failed > 0) {
-      console.log('[reporter] LLM analysis would run (set ANTHROPIC_API_KEY or OPENAI_API_KEY)');
+      logger.info('[reporter] LLM analysis would run (set ANTHROPIC_API_KEY or OPENAI_API_KEY)');
     }
   }
 }

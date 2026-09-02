@@ -32,19 +32,19 @@ A production-ready Playwright E2E testing framework using the **Page Object Mode
 
 ```bash
 # 1. Install dependencies
-npm install
+yarn install
 
 # 2. Install browsers
 npx playwright install --with-deps
 
 # 3. Run all tests
-npm test
+yarn test
 
 # 4. Run sanity tests only (fast gate)
-npm run test:sanity
+yarn test:sanity
 
 # 5. Open the HTML report
-npm run test:report
+yarn test:report
 ```
 
 ---
@@ -62,10 +62,12 @@ playwright-ts-template-pom/
 ├── helpers/           → Assertion, navigation, page, performance, a11y helpers
 ├── pages/             → Page Objects (base, home, blogs, blog-post, about, tags, tag)
 ├── scripts/           → Slack notifier, LLM failure analyzer, custom reporter, test health
-├── utils/             → Pure utilities (date, string, URL)
-├── tests/             → 14 spec files (92 tests)
+├── utils/             → Pure utilities (date, string, URL, logger)
+├── tests/             → 16 spec files (101 tests)
 ├── playwright.config.ts
 ├── tsconfig.json
+├── eslint.config.mjs
+├── yarn.lock
 └── package.json
 ```
 
@@ -279,7 +281,7 @@ test('XSS payloads are handled safely @regression', async ({ homePage }) => {
 
 ### API Testing
 
-Test endpoints without a browser using Playwright's `APIRequestContext`:
+Test endpoints without a browser using [axios](https://axios-http.com/):
 
 ```typescript
 import { test, expect } from '../fixtures/base.fixture';
@@ -457,8 +459,8 @@ Every test is tagged as either `@sanity` or `@regression`:
 
 | Tag           | Purpose                                  | Count | Runtime |
 | ------------- | ---------------------------------------- | ----- | ------- |
-| `@sanity`     | Critical path — must pass before merge   | 26    | ~6s     |
-| `@regression` | Full coverage — runs after sanity passes | 65    | ~16s    |
+| `@sanity`     | Critical path — must pass before merge   | 28    | ~8s     |
+| `@regression` | Full coverage — runs after sanity passes | 73    | ~40s    |
 
 **Tagging guidelines:**
 
@@ -480,23 +482,23 @@ test('edge case @regression', async ({ ... }) => { });
 
 ```bash
 # All tests
-npm test
+yarn test
 
 # By tag
-npm run test:sanity                     # @sanity only
-npm run test:regression                 # @regression only
-npm run test:sanity-then-regression     # Sanity gate → regression
+yarn test:sanity                     # @sanity only
+yarn test:regression                 # @regression only
+yarn test:sanity-then-regression     # Sanity gate → regression
 
 # By browser
-npm run test:chrome
-npm run test:firefox
-npm run test:webkit
-npm run test:mobile                     # Pixel 5 + iPhone 12
+yarn test:chrome
+yarn test:firefox
+yarn test:webkit
+yarn test:mobile                     # Pixel 5 + iPhone 12
 
 # Debug
-npm run test:debug                      # Step-through debugger
-npm run test:ui                         # Playwright UI mode
-npm run test:headed                     # Watch in browser
+yarn test:debug                      # Step-through debugger
+yarn test:ui                         # Playwright UI mode
+yarn test:headed                     # Watch in browser
 
 # Single file
 npx playwright test tests/home.spec.ts
@@ -519,7 +521,7 @@ npx playwright test --shard=3/3
 Generated automatically after every run.
 
 ```bash
-npm run test:report
+yarn test:report
 ```
 
 ### Allure Report
@@ -528,10 +530,10 @@ Rich interactive reports with history, trends, and categories.
 
 ```bash
 # Start Allure server (opens browser)
-npm run allure:serve
+yarn allure:serve
 
 # Generate static HTML report
-npm run allure:generate
+yarn allure:generate
 ```
 
 ### Test Health Dashboard
@@ -539,7 +541,7 @@ npm run allure:generate
 Quick overview of test suite composition and tagging:
 
 ```bash
-npm run test:health
+yarn test:health
 ```
 
 Output:
@@ -558,41 +560,48 @@ Output:
   blog-post.spec.ts                  8       2      6      0
   ...
   -------------------------------------------------------------
-  TOTAL                             92      26     65      0
+  TOTAL                            101      28     73      0
 
   Summary:
-    Total tests:       92
-    Sanity tests:      26 (28%)
-    Regression tests:  65 (71%)
+    Total tests:       101
+    Sanity tests:      28 (28%)
+    Regression tests:  73 (72%)
     Untagged tests:    0
-    Spec files:        14
+    Spec files:        16
 ```
 
 ---
 
 ## CI/CD Pipeline
 
-The GitHub Actions workflow (`.github/workflows/e2e-tests.yml`) runs a 4-stage pipeline:
+Two GitHub Actions workflows:
+
+### E2E Tests (`.github/workflows/e2e-tests.yml`)
 
 ```
-┌─────────┐     ┌────────────────────────┐     ┌───────────────┐     ┌────────────────────┐
-│ Sanity  │────▶│ Regression (3 shards) │────▶│ Merge Reports │────▶│ Analyze & Notify  │
-│ (gate)  │     │ shard 1/3             │     │               │     │ LLM analysis      │
-│         │     │ shard 2/3             │     │               │     │ Slack notification │
-│         │     │ shard 3/3             │     │               │     │                    │
-└─────────┘     └────────────────────────┘     └───────────────┘     └────────────────────┘
-  If fails,       Runs in parallel              Merges shard          Posts to Slack,
-  regression      across 3 runners              reports into          runs LLM failure
-  is skipped                                    one HTML report       analysis
+┌─────────────────────┐     ┌───────────────────────────┐     ┌────────────────────────┐     ┌──────────────┐
+│ Sanity (per browser)│────▶│ Regression (3 shards      │────▶│ Merge & Deploy Report  │────▶│   Summary    │
+│ chromium            │     │  × 3 browsers)            │     │ → GitHub Pages         │     │ (step summary│
+│ firefox             │     │ chromium  1/3, 2/3, 3/3   │     │                        │     │  + report    │
+│ webkit              │     │ firefox   1/3, 2/3, 3/3   │     │                        │     │  link)       │
+│                     │     │ webkit    1/3, 2/3, 3/3   │     │                        │     │              │
+└─────────────────────┘     └───────────────────────────┘     └────────────────────────┘     └──────────────┘
+  If sanity fails,            Runs in parallel                  Merged HTML report            GitHub Step Summary
+  regression skipped          across runners                    deployed to GitHub Pages      with Pages report URL
 ```
 
-**Triggers**: Push to `main`/`develop`, PRs, manual dispatch (custom URL + browser).
+**Triggers**: Push to `master`, nightly cron at 04:00 UTC (07:00 Israel), manual dispatch.
 
-**Artifacts uploaded**:
+### Static Checks (`.github/workflows/static-checks.yml`)
+
+Runs on every push and PR: ESLint, Prettier, TypeScript type checking.
+
+**Artifacts** (7-day retention):
 
 - Playwright HTML report (per-shard + merged)
-- Allure results
 - Failure screenshots/traces (on failure)
+
+**GitHub Pages setup**: Repo Settings → Pages → Source → **GitHub Actions**.
 
 ---
 
@@ -607,10 +616,10 @@ Sends Block Kit formatted messages after test runs.
 export SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T.../B.../...
 
 # Run manually
-npm run test:analyze-failures
+yarn test:analyze-failures
 ```
 
-Without `SLACK_WEBHOOK_URL`, it prints the payload to console (useful for testing the format).
+Without `SLACK_WEBHOOK_URL`, it prints the payload to the logger output (useful for testing the format).
 
 ### LLM Failure Analysis
 
@@ -619,14 +628,14 @@ Reads Playwright error contexts and categorizes failures as test/app/environment
 ```bash
 # With Claude (preferred)
 export ANTHROPIC_API_KEY=sk-ant-...
-npm run test:analyze-failures
+yarn test:analyze-failures
 
 # With OpenAI (fallback)
 export OPENAI_API_KEY=sk-...
-npm run test:analyze-failures
+yarn test:analyze-failures
 
 # Without API key — uses local pattern matching
-npm run test:analyze-failures
+yarn test:analyze-failures
 ```
 
 Output:
@@ -669,16 +678,17 @@ reporter: [
 
 ### Environment Variables
 
-| Variable            | Default             | Description                       |
-| ------------------- | ------------------- | --------------------------------- |
-| `BASE_URL`          | `https://kazis.dev` | App under test                    |
-| `CI`                | `false`             | Enables retries + GitHub reporter |
-| `SLOW_MO`           | `0`                 | Slow down actions (ms)            |
-| `RETRIES`           | CI=2, local=0       | Retry count                       |
-| `WORKERS`           | CI=2, local=auto    | Parallel workers                  |
-| `SLACK_WEBHOOK_URL` | —                   | Slack incoming webhook            |
-| `ANTHROPIC_API_KEY` | —                   | Claude API for failure analysis   |
-| `OPENAI_API_KEY`    | —                   | OpenAI fallback for analysis      |
+| Variable            | Default             | Description                               |
+| ------------------- | ------------------- | ----------------------------------------- |
+| `BASE_URL`          | `https://kazis.dev` | App under test                            |
+| `CI`                | `false`             | Enables retries + GitHub reporter         |
+| `SLOW_MO`           | `0`                 | Slow down actions (ms)                    |
+| `RETRIES`           | CI=2, local=0       | Retry count                               |
+| `WORKERS`           | CI=2, local=auto    | Parallel workers                          |
+| `SLACK_WEBHOOK_URL` | —                   | Slack incoming webhook                    |
+| `ANTHROPIC_API_KEY` | —                   | Claude API for failure analysis           |
+| `OPENAI_API_KEY`    | —                   | OpenAI fallback for analysis              |
+| `LOG_LEVEL`         | `info`              | Winston log level (debug/info/warn/error) |
 
 Use a `.env` file for local development (it's in `.gitignore`):
 
@@ -898,7 +908,7 @@ The base fixture extends Playwright's `test` with page objects and helpers via d
 **Q: How do I run tests against a local dev server?**
 
 ```bash
-BASE_URL=http://localhost:3000 npm test
+BASE_URL=http://localhost:3000 yarn test
 ```
 
 Or use a `.env` file.
@@ -932,23 +942,25 @@ Yes. Set the `working-directory` in CI workflows and adjust the `testDir` in `pl
 
 ## Test Suites
 
-| Spec            | Tests  | Sanity | Regression | Coverage                                     |
-| --------------- | ------ | ------ | ---------- | -------------------------------------------- |
-| `home`          | 11     | 5      | 6          | Hero, cards, nav links, Explore Articles     |
-| `blogs`         | 7      | 3      | 4          | Listing, heading, card click, post count     |
-| `blog-post`     | 8      | 2      | 6          | Title, content, date, tags, code blocks, 404 |
-| `about`         | 7      | 3      | 4          | Heading, profile image, social links         |
-| `tags`          | 9      | 3      | 6          | Tag list, click, Python/Playwright filter    |
-| `search`        | 5      | 2      | 3          | Input, results, empty, clear                 |
-| `navigation`    | 6      | 2      | 4          | Navbar routing, logo, back button, 404       |
-| `a11y`          | 8      | 2      | 6          | axe-core WCAG audit per page                 |
-| `accessibility` | 5      | 1      | 4          | Lang, alt text, keyboard, headings, links    |
-| `api`           | 3      | 1      | 2          | Page availability, 404, known post           |
-| `seo`           | 8      | 1      | 7          | Title, OG tags, meta description, images     |
-| `performance`   | 7      | 0      | 7          | Web Vitals budgets (TTFB, FCP, LCP, CLS)     |
-| `responsive`    | 4      | 1      | 3          | Mobile/tablet/desktop viewports              |
-| `security`      | 3      | 0      | 3          | XSS payloads, special char URLs              |
-| **Total**       | **92** | **26** | **65**     |                                              |
+| Spec            | Tests   | Sanity | Regression | Coverage                                     |
+| --------------- | ------- | ------ | ---------- | -------------------------------------------- |
+| `home`          | 11      | 5      | 6          | Hero, cards, nav links, Explore Articles     |
+| `blogs`         | 7       | 3      | 4          | Listing, heading, card click, post count     |
+| `blog-post`     | 8       | 2      | 6          | Title, content, date, tags, code blocks, 404 |
+| `about`         | 7       | 3      | 4          | Heading, profile image, social links         |
+| `tags`          | 9       | 3      | 6          | Tag list, click, Python/Playwright filter    |
+| `search`        | 5       | 2      | 3          | Input, results, empty, clear                 |
+| `navigation`    | 6       | 2      | 4          | Navbar routing, logo, back button, 404       |
+| `a11y`          | 8       | 2      | 6          | axe-core WCAG audit per page                 |
+| `accessibility` | 5       | 1      | 4          | Lang, alt text, keyboard, headings, links    |
+| `api`           | 5       | 1      | 4          | Page availability, 404, RSS, headers (axios) |
+| `seo`           | 8       | 1      | 7          | Title, OG tags, meta description, images     |
+| `performance`   | 7       | 0      | 7          | Web Vitals budgets (TTFB, FCP, LCP, CLS)     |
+| `responsive`    | 4       | 1      | 3          | Mobile/tablet/desktop viewports              |
+| `security`      | 3       | 0      | 3          | XSS payloads, special char URLs              |
+| `dark-mode`     | 4       | 1      | 3          | Theme toggle, dark/light switch, a11y label  |
+| `rss`           | 4       | 1      | 3          | RSS feed XML, link tag, anchor link          |
+| **Total**       | **101** | **28** | **73**     |                                              |
 
 ---
 

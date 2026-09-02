@@ -1,10 +1,10 @@
 name: E2E Tests
 
 on:
-  push:
+  pull_request:
     branches: [master]
   schedule:
-    # Nightly at 04:00 UTC
+    # Nightly at 04:00 UTC (07:00 Israel time)
     - cron: '0 4 * * *'
   workflow_dispatch:
     inputs:
@@ -37,8 +37,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: 'yarn'
@@ -53,7 +52,7 @@ jobs:
         run: npx playwright test --grep @sanity --project=${{ matrix.project }}
 
       - name: Upload sanity report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: sanity-report-${{ matrix.project }}
@@ -78,7 +77,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: 'yarn'
@@ -97,7 +96,7 @@ jobs:
           --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
 
       - name: Upload blob report (for merging)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: blob-report-${{ matrix.project }}-${{ matrix.shardIndex }}
@@ -105,7 +104,7 @@ jobs:
           retention-days: 7
 
       - name: Upload failure artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: test-results-${{ matrix.project }}-${{ matrix.shardIndex }}
@@ -120,11 +119,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: regression
     if: always()
+    outputs:
+      pages_url: ${{ steps.deploy.outputs.page_url }}
 
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: 'yarn'
@@ -133,7 +134,7 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Download blob reports
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: all-blob-reports
           pattern: blob-report-*
@@ -143,7 +144,7 @@ jobs:
         run: npx playwright merge-reports --reporter html ./all-blob-reports || true
 
       - name: Upload merged HTML report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: playwright-report/
@@ -155,4 +156,71 @@ jobs:
           path: playwright-report/
 
       - name: Publish to GitHub Pages
-        uses: actions/deploy-pages@v4
+        id: deploy
+        uses: actions/deploy-pages@v5
+
+  # ───────────────────────────────────────────────
+  # Stage 4: Summary
+  # ───────────────────────────────────────────────
+  summary:
+    name: Summary
+    runs-on: ubuntu-latest
+    needs: [sanity, regression, report]
+    if: always()
+
+    steps:
+      - name: Write job summary
+        run: |
+          SANITY_RESULT="${{ needs.sanity.result }}"
+          REGRESSION_RESULT="${{ needs.regression.result }}"
+          REPORT_RESULT="${{ needs.report.result }}"
+          PAGES_URL="${{ needs.report.outputs.pages_url }}"
+          BASE_URL="${{ env.BASE_URL }}"
+          TRIGGER="${{ github.event_name }}"
+
+          # Status emoji helper
+          status_icon() {
+            case "$1" in
+              success)  echo "✅" ;;
+              failure)  echo "❌" ;;
+              cancelled) echo "⏹️" ;;
+              skipped)  echo "⏭️" ;;
+              *)        echo "❓" ;;
+            esac
+          }
+
+          # Overall status
+          if [ "$SANITY_RESULT" = "success" ] && [ "$REGRESSION_RESULT" = "success" ]; then
+            OVERALL="✅ All tests passed"
+          elif [ "$SANITY_RESULT" = "failure" ]; then
+            OVERALL="❌ Sanity failed — regression was skipped"
+          elif [ "$REGRESSION_RESULT" = "failure" ]; then
+            OVERALL="❌ Regression failed"
+          else
+            OVERALL="⚠️ Partial run"
+          fi
+
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## E2E Test Run Summary
+
+          **$OVERALL**
+
+          | Stage | Status |
+          |-------|--------|
+          | Sanity (chromium, firefox, webkit) | $(status_icon "$SANITY_RESULT") $SANITY_RESULT |
+          | Regression (3 shards × 3 browsers) | $(status_icon "$REGRESSION_RESULT") $REGRESSION_RESULT |
+          | Report merge & deploy | $(status_icon "$REPORT_RESULT") $REPORT_RESULT |
+
+          ### Details
+
+          - **Target URL:** $BASE_URL
+          - **Trigger:** $TRIGGER
+          - **Browsers:** chromium, firefox, webkit
+          - **Shards:** 3 per browser (9 parallel jobs)
+
+          ### Report
+
+          📊 **[View Playwright Report]($PAGES_URL)** (GitHub Pages)
+
+          Report artifact also available in the **Actions → Artifacts** section (7-day retention).
+          EOF

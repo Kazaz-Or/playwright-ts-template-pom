@@ -1,6 +1,7 @@
 import { Page, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { A11yOptions, A11yViolation } from './types';
+import logger from '../utils/logger';
 
 /**
  * Accessibility helper — wraps axe-core for WCAG compliance scanning.
@@ -81,18 +82,18 @@ export class AccessibilityHelper {
   /** Print violations report to console */
   printViolations(violations: A11yViolation[]): void {
     if (violations.length === 0) {
-      console.log('  ✅ No accessibility violations found');
+      logger.info('No accessibility violations found');
       return;
     }
 
-    console.log(`  ❌ ${violations.length} violation(s):`);
+    logger.warn(`${violations.length} violation(s):`);
     for (const v of violations) {
-      console.log(`    [${v.impact}] ${v.id}: ${v.description}`);
-      console.log(`      Affected: ${v.nodes} element(s)`);
+      logger.warn(`  [${v.impact}] ${v.id}: ${v.description}`);
+      logger.warn(`    Affected: ${v.nodes} element(s)`);
       for (const target of v.targets) {
-        console.log(`        → ${target}`);
+        logger.warn(`      → ${target}`);
       }
-      console.log(`      Help: ${v.helpUrl}`);
+      logger.warn(`    Help: ${v.helpUrl}`);
     }
   }
 }

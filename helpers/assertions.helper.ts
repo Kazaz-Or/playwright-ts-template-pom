@@ -74,7 +74,17 @@ export class AssertionsHelper {
   async assertNoImageErrors(): Promise<void> {
     const images = await this.page.locator('img').all();
     for (const img of images) {
-      const naturalWidth = await img.evaluate((el) => (el as HTMLImageElement).naturalWidth);
+      // ponytail: scroll + wait for decode — Firefox/WebKit don't expose naturalWidth on lazy images until loaded
+      await img.scrollIntoViewIfNeeded();
+      const naturalWidth = await img.evaluate((el) => {
+        const imgEl = el as HTMLImageElement;
+        if (imgEl.complete && imgEl.naturalWidth > 0) return imgEl.naturalWidth;
+        return new Promise<number>((resolve) => {
+          imgEl.onload = () => resolve(imgEl.naturalWidth);
+          imgEl.onerror = () => resolve(0);
+          setTimeout(() => resolve(imgEl.naturalWidth), 5000);
+        });
+      });
       const src = await img.getAttribute('src');
       expect(naturalWidth, `Image failed to load: ${src}`).toBeGreaterThan(0);
     }
