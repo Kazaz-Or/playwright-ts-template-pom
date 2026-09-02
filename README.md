@@ -955,3 +955,9 @@ Yes. Set the `working-directory` in CI workflows and adjust the `testDir` in `pl
 ## License
 
 MIT
+
+---
+
+Made with <3 by [Me](https://github.com/Kazaz-Or) :)
+
+For anything - Feel free to approach me on [Linkedin](https://www.linkedin.com/in/kazaz-or/)
