@@ -1,7 +1,7 @@
 name: E2E Tests
 
 on:
-  push:
+  pr:
     branches: [master]
   schedule:
     # Nightly at 04:00 UTC (07:00 Israel time)
