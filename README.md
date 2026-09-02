@@ -2,6 +2,8 @@
 
 A production-ready Playwright E2E testing framework using the **Page Object Model** pattern. Built as a reusable baseline — clone it, point it at your app, and start writing tests.
 
+<img width="2172" height="724" alt="ec650490-67ae-41ee-899e-3dbd94adecd7" src="https://github.com/user-attachments/assets/7cb3f61c-40f0-4199-bfc8-509a74d35d84" />
+
 ## Table of Contents
 
 - [Quick Start](#quick-start)
