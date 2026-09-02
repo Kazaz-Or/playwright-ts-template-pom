@@ -41,10 +41,10 @@ npx playwright install --with-deps
 yarn test
 
 # 4. Run sanity tests only (fast gate)
-yarntest:sanity
+yarn test:sanity
 
 # 5. Open the HTML report
-yarntest:report
+yarn test:report
 ```
 
 ---
@@ -62,8 +62,8 @@ playwright-ts-template-pom/
 ├── helpers/           → Assertion, navigation, page, performance, a11y helpers
 ├── pages/             → Page Objects (base, home, blogs, blog-post, about, tags, tag)
 ├── scripts/           → Slack notifier, LLM failure analyzer, custom reporter, test health
-├── utils/             → Pure utilities (date, string, URL)
-├── tests/             → 16 spec files (102 tests)
+├── utils/             → Pure utilities (date, string, URL, logger)
+├── tests/             → 16 spec files (101 tests)
 ├── playwright.config.ts
 ├── tsconfig.json
 ├── eslint.config.mjs
@@ -459,7 +459,7 @@ Every test is tagged as either `@sanity` or `@regression`:
 
 | Tag           | Purpose                                  | Count | Runtime |
 | ------------- | ---------------------------------------- | ----- | ------- |
-| `@sanity`     | Critical path — must pass before merge   | 29    | ~8s     |
+| `@sanity`     | Critical path — must pass before merge   | 28    | ~8s     |
 | `@regression` | Full coverage — runs after sanity passes | 73    | ~40s    |
 
 **Tagging guidelines:**
@@ -485,20 +485,20 @@ test('edge case @regression', async ({ ... }) => { });
 yarn test
 
 # By tag
-yarntest:sanity                     # @sanity only
-yarntest:regression                 # @regression only
-yarntest:sanity-then-regression     # Sanity gate → regression
+yarn test:sanity                     # @sanity only
+yarn test:regression                 # @regression only
+yarn test:sanity-then-regression     # Sanity gate → regression
 
 # By browser
-yarntest:chrome
-yarntest:firefox
-yarntest:webkit
-yarntest:mobile                     # Pixel 5 + iPhone 12
+yarn test:chrome
+yarn test:firefox
+yarn test:webkit
+yarn test:mobile                     # Pixel 5 + iPhone 12
 
 # Debug
-yarntest:debug                      # Step-through debugger
-yarntest:ui                         # Playwright UI mode
-yarntest:headed                     # Watch in browser
+yarn test:debug                      # Step-through debugger
+yarn test:ui                         # Playwright UI mode
+yarn test:headed                     # Watch in browser
 
 # Single file
 npx playwright test tests/home.spec.ts
@@ -521,7 +521,7 @@ npx playwright test --shard=3/3
 Generated automatically after every run.
 
 ```bash
-yarntest:report
+yarn test:report
 ```
 
 ### Allure Report
@@ -530,10 +530,10 @@ Rich interactive reports with history, trends, and categories.
 
 ```bash
 # Start Allure server (opens browser)
-yarnallure:serve
+yarn allure:serve
 
 # Generate static HTML report
-yarnallure:generate
+yarn allure:generate
 ```
 
 ### Test Health Dashboard
@@ -541,7 +541,7 @@ yarnallure:generate
 Quick overview of test suite composition and tagging:
 
 ```bash
-yarntest:health
+yarn test:health
 ```
 
 Output:
@@ -560,11 +560,11 @@ Output:
   blog-post.spec.ts                  8       2      6      0
   ...
   -------------------------------------------------------------
-  TOTAL                            102      29     73      0
+  TOTAL                            101      28     73      0
 
   Summary:
-    Total tests:       102
-    Sanity tests:      29 (28%)
+    Total tests:       101
+    Sanity tests:      28 (28%)
     Regression tests:  73 (72%)
     Untagged tests:    0
     Spec files:        16
@@ -579,15 +579,15 @@ Two GitHub Actions workflows:
 ### E2E Tests (`.github/workflows/e2e-tests.yml`)
 
 ```
-┌─────────────────────┐     ┌───────────────────────────┐     ┌────────────────────────┐
-│ Sanity (per browser)│────▶│ Regression (3 shards      │────▶│ Merge & Deploy Report  │
-│ chromium            │     │  × 3 browsers)            │     │ → GitHub Pages         │
-│ firefox             │     │ chromium  1/3, 2/3, 3/3   │     │                        │
-│ webkit              │     │ firefox   1/3, 2/3, 3/3   │     │                        │
-│                     │     │ webkit    1/3, 2/3, 3/3   │     │                        │
-└─────────────────────┘     └───────────────────────────┘     └────────────────────────┘
-  If sanity fails,            Runs in parallel                  Merged HTML report
-  regression skipped          across runners                    deployed to GitHub Pages
+┌─────────────────────┐     ┌───────────────────────────┐     ┌────────────────────────┐     ┌──────────────┐
+│ Sanity (per browser)│────▶│ Regression (3 shards      │────▶│ Merge & Deploy Report  │────▶│   Summary    │
+│ chromium            │     │  × 3 browsers)            │     │ → GitHub Pages         │     │ (step summary│
+│ firefox             │     │ chromium  1/3, 2/3, 3/3   │     │                        │     │  + report    │
+│ webkit              │     │ firefox   1/3, 2/3, 3/3   │     │                        │     │  link)       │
+│                     │     │ webkit    1/3, 2/3, 3/3   │     │                        │     │              │
+└─────────────────────┘     └───────────────────────────┘     └────────────────────────┘     └──────────────┘
+  If sanity fails,            Runs in parallel                  Merged HTML report            GitHub Step Summary
+  regression skipped          across runners                    deployed to GitHub Pages      with Pages report URL
 ```
 
 **Triggers**: Push to `master`, nightly cron at 04:00 UTC (07:00 Israel), manual dispatch.
@@ -616,10 +616,10 @@ Sends Block Kit formatted messages after test runs.
 export SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T.../B.../...
 
 # Run manually
-yarntest:analyze-failures
+yarn test:analyze-failures
 ```
 
-Without `SLACK_WEBHOOK_URL`, it prints the payload to console (useful for testing the format).
+Without `SLACK_WEBHOOK_URL`, it prints the payload to the logger output (useful for testing the format).
 
 ### LLM Failure Analysis
 
@@ -628,14 +628,14 @@ Reads Playwright error contexts and categorizes failures as test/app/environment
 ```bash
 # With Claude (preferred)
 export ANTHROPIC_API_KEY=sk-ant-...
-yarntest:analyze-failures
+yarn test:analyze-failures
 
 # With OpenAI (fallback)
 export OPENAI_API_KEY=sk-...
-yarntest:analyze-failures
+yarn test:analyze-failures
 
 # Without API key — uses local pattern matching
-yarntest:analyze-failures
+yarn test:analyze-failures
 ```
 
 Output:
@@ -678,16 +678,17 @@ reporter: [
 
 ### Environment Variables
 
-| Variable            | Default             | Description                       |
-| ------------------- | ------------------- | --------------------------------- |
-| `BASE_URL`          | `https://kazis.dev` | App under test                    |
-| `CI`                | `false`             | Enables retries + GitHub reporter |
-| `SLOW_MO`           | `0`                 | Slow down actions (ms)            |
-| `RETRIES`           | CI=2, local=0       | Retry count                       |
-| `WORKERS`           | CI=2, local=auto    | Parallel workers                  |
-| `SLACK_WEBHOOK_URL` | —                   | Slack incoming webhook            |
-| `ANTHROPIC_API_KEY` | —                   | Claude API for failure analysis   |
-| `OPENAI_API_KEY`    | —                   | OpenAI fallback for analysis      |
+| Variable            | Default             | Description                               |
+| ------------------- | ------------------- | ----------------------------------------- |
+| `BASE_URL`          | `https://kazis.dev` | App under test                            |
+| `CI`                | `false`             | Enables retries + GitHub reporter         |
+| `SLOW_MO`           | `0`                 | Slow down actions (ms)                    |
+| `RETRIES`           | CI=2, local=0       | Retry count                               |
+| `WORKERS`           | CI=2, local=auto    | Parallel workers                          |
+| `SLACK_WEBHOOK_URL` | —                   | Slack incoming webhook                    |
+| `ANTHROPIC_API_KEY` | —                   | Claude API for failure analysis           |
+| `OPENAI_API_KEY`    | —                   | OpenAI fallback for analysis              |
+| `LOG_LEVEL`         | `info`              | Winston log level (debug/info/warn/error) |
 
 Use a `.env` file for local development (it's in `.gitignore`):
 
@@ -945,7 +946,7 @@ Yes. Set the `working-directory` in CI workflows and adjust the `testDir` in `pl
 | --------------- | ------- | ------ | ---------- | -------------------------------------------- |
 | `home`          | 11      | 5      | 6          | Hero, cards, nav links, Explore Articles     |
 | `blogs`         | 7       | 3      | 4          | Listing, heading, card click, post count     |
-| `blog-post`     | 10      | 2      | 8          | Title, content, date, tags, code blocks, 404 |
+| `blog-post`     | 8       | 2      | 6          | Title, content, date, tags, code blocks, 404 |
 | `about`         | 7       | 3      | 4          | Heading, profile image, social links         |
 | `tags`          | 9       | 3      | 6          | Tag list, click, Python/Playwright filter    |
 | `search`        | 5       | 2      | 3          | Input, results, empty, clear                 |
@@ -959,7 +960,7 @@ Yes. Set the `working-directory` in CI workflows and adjust the `testDir` in `pl
 | `security`      | 3       | 0      | 3          | XSS payloads, special char URLs              |
 | `dark-mode`     | 4       | 1      | 3          | Theme toggle, dark/light switch, a11y label  |
 | `rss`           | 4       | 1      | 3          | RSS feed XML, link tag, anchor link          |
-| **Total**       | **102** | **29** | **73**     |                                              |
+| **Total**       | **101** | **28** | **73**     |                                              |
 
 ---
 
