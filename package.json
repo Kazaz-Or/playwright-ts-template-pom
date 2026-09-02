@@ -1,0 +1,45 @@
+{
+  "name": "playwright-ts-template-pom",
+  "version": "1.0.0",
+  "description": "Production-ready Playwright E2E test framework using Page Object Model pattern with TypeScript",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report",
+    "test:sanity": "playwright test --grep @sanity",
+    "test:regression": "playwright test --grep @regression",
+    "test:sanity-then-regression": "playwright test --grep @sanity && playwright test --grep @regression",
+    "test:chrome": "playwright test --project=chromium",
+    "test:firefox": "playwright test --project=firefox",
+    "test:webkit": "playwright test --project=webkit",
+    "test:mobile": "playwright test --project=mobile-chrome --project=mobile-safari",
+    "test:analyze-failures": "ts-node scripts/analyze-failures.ts",
+    "test:health": "ts-node scripts/test-health.ts",
+    "allure:serve": "allure serve allure-results",
+    "allure:generate": "allure generate allure-results -o allure-report --clean",
+    "codegen": "playwright codegen https://kazis.dev",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@faker-js/faker": "^10.6.0",
+    "@playwright/test": "^1.62.1",
+    "allure-playwright": "^3.11.1",
+    "axios": "^1.20.0",
+    "dotenv": "^17.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "eslint": "^10.9.1",
+    "prettier": "^3.9.6",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.0",
+    "typescript-eslint": "^8.69.0"
+  }
+}
