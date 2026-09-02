@@ -12,6 +12,7 @@
  */
 
 import * as fs from 'fs';
+import logger from '../utils/logger';
 import * as path from 'path';
 
 const TESTS_DIR = path.resolve(__dirname, '../tests');
@@ -58,13 +59,13 @@ function main() {
     { total: 0, sanity: 0, regression: 0, untagged: 0 },
   );
 
-  console.log('\n' + '═'.repeat(65));
-  console.log('  📊 TEST HEALTH DASHBOARD');
-  console.log('═'.repeat(65));
+  logger.info('\n' + '═'.repeat(65));
+  logger.info('  📊 TEST HEALTH DASHBOARD');
+  logger.info('═'.repeat(65));
 
-  console.log('\n  Per-file breakdown:');
-  console.log('  ' + '-'.repeat(61));
-  console.log(
+  logger.info('\n  Per-file breakdown:');
+  logger.info('  ' + '-'.repeat(61));
+  logger.info(
     '  ' +
       'File'.padEnd(30) +
       'Total'.padStart(7) +
@@ -72,11 +73,11 @@ function main() {
       'Regr'.padStart(7) +
       'Untag'.padStart(7),
   );
-  console.log('  ' + '-'.repeat(61));
+  logger.info('  ' + '-'.repeat(61));
 
   for (const m of metrics) {
     const untag = m.untagged > 0 ? `⚠ ${m.untagged}` : '0';
-    console.log(
+    logger.info(
       '  ' +
         m.file.padEnd(30) +
         String(m.total).padStart(7) +
@@ -86,8 +87,8 @@ function main() {
     );
   }
 
-  console.log('  ' + '-'.repeat(61));
-  console.log(
+  logger.info('  ' + '-'.repeat(61));
+  logger.info(
     '  ' +
       'TOTAL'.padEnd(30) +
       String(totals.total).padStart(7) +
@@ -96,27 +97,27 @@ function main() {
       String(totals.untagged).padStart(7),
   );
 
-  console.log('\n  Summary:');
-  console.log(`    Total tests:       ${totals.total}`);
-  console.log(
+  logger.info('\n  Summary:');
+  logger.info(`    Total tests:       ${totals.total}`);
+  logger.info(
     `    Sanity tests:      ${totals.sanity} (${((totals.sanity / totals.total) * 100).toFixed(0)}%)`,
   );
-  console.log(
+  logger.info(
     `    Regression tests:  ${totals.regression} (${((totals.regression / totals.total) * 100).toFixed(0)}%)`,
   );
-  console.log(`    Untagged tests:    ${totals.untagged}`);
-  console.log(`    Spec files:        ${specFiles.length}`);
-  console.log(`    Sanity/Regression: ${totals.sanity}:${totals.regression}`);
+  logger.info(`    Untagged tests:    ${totals.untagged}`);
+  logger.info(`    Spec files:        ${specFiles.length}`);
+  logger.info(`    Sanity/Regression: ${totals.sanity}:${totals.regression}`);
 
   if (totals.untagged > 0) {
-    console.log(`\n  ⚠  ${totals.untagged} test(s) have no @sanity or @regression tag`);
+    logger.info(`\n  ⚠  ${totals.untagged} test(s) have no @sanity or @regression tag`);
   }
 
   if (totals.sanity === 0) {
-    console.log('\n  ⚠  No @sanity tests found! Add @sanity tags to critical path tests.');
+    logger.info('\n  ⚠  No @sanity tests found! Add @sanity tags to critical path tests.');
   }
 
-  console.log('\n' + '═'.repeat(65) + '\n');
+  logger.info('\n' + '═'.repeat(65) + '\n');
 }
 
 main();

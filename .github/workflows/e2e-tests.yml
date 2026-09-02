@@ -36,9 +36,8 @@ jobs:
         project: [chromium, firefox, webkit]
 
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: 'yarn'
@@ -53,7 +52,7 @@ jobs:
         run: npx playwright test --grep @sanity --project=${{ matrix.project }}
 
       - name: Upload sanity report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: sanity-report-${{ matrix.project }}
@@ -76,9 +75,9 @@ jobs:
         shardTotal: [3]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: 'yarn'
@@ -97,7 +96,7 @@ jobs:
           --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
 
       - name: Upload blob report (for merging)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: blob-report-${{ matrix.project }}-${{ matrix.shardIndex }}
@@ -105,7 +104,7 @@ jobs:
           retention-days: 7
 
       - name: Upload failure artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: test-results-${{ matrix.project }}-${{ matrix.shardIndex }}
@@ -124,9 +123,9 @@ jobs:
       pages_url: ${{ steps.deploy.outputs.page_url }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: 'yarn'
@@ -145,7 +144,7 @@ jobs:
         run: npx playwright merge-reports --reporter html ./all-blob-reports || true
 
       - name: Upload merged HTML report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: playwright-report/

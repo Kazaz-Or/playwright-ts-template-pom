@@ -13,6 +13,7 @@
  */
 
 import * as fs from 'fs';
+import logger from '../utils/logger';
 import * as path from 'path';
 import { FailureAnalysis } from './types';
 
@@ -176,13 +177,13 @@ function localAnalysis(failures: { testName: string; context: string }[]): Failu
 
 function printReport(analyses: FailureAnalysis[]): void {
   if (analyses.length === 0) {
-    console.log('\n✅ No failures to analyze.\n');
+    logger.info('\n✅ No failures to analyze.\n');
     return;
   }
 
-  console.log(`\n${'='.repeat(60)}`);
-  console.log(`🔍 FAILURE ANALYSIS REPORT (${analyses.length} failures)`);
-  console.log(`${'='.repeat(60)}\n`);
+  logger.info(`\n${'='.repeat(60)}`);
+  logger.info(`🔍 FAILURE ANALYSIS REPORT (${analyses.length} failures)`);
+  logger.info(`${'='.repeat(60)}\n`);
 
   const grouped = {
     test: [] as FailureAnalysis[],
@@ -201,42 +202,42 @@ function printReport(analyses: FailureAnalysis[]): void {
 
   for (const [cat, items] of Object.entries(grouped)) {
     if (items.length === 0) continue;
-    console.log(`\n${labels[cat as keyof typeof labels]} (${items.length}):`);
-    console.log(`${'-'.repeat(40)}`);
+    logger.info(`\n${labels[cat as keyof typeof labels]} (${items.length}):`);
+    logger.info(`${'-'.repeat(40)}`);
     for (const item of items) {
-      console.log(`\n  📋 ${item.testName}`);
-      console.log(`     ${item.analysis.replace(/\n/g, '\n     ')}`);
+      logger.info(`\n  📋 ${item.testName}`);
+      logger.info(`     ${item.analysis.replace(/\n/g, '\n     ')}`);
     }
   }
 
-  console.log(`\n${'='.repeat(60)}\n`);
+  logger.info(`\n${'='.repeat(60)}\n`);
 }
 
 async function main() {
   const failures = collectFailureContexts();
 
   if (failures.length === 0) {
-    console.log('✅ No failure contexts found in test-results/');
+    logger.info('✅ No failure contexts found in test-results/');
     return;
   }
 
-  console.log(`Found ${failures.length} failure(s) to analyze...`);
+  logger.info(`Found ${failures.length} failure(s) to analyze...`);
 
   let analyses: FailureAnalysis[];
 
   if (process.env.ANTHROPIC_API_KEY) {
-    console.log('Using Claude for analysis...');
+    logger.info('Using Claude for analysis...');
     analyses = await analyzeWithClaude(failures);
   } else if (process.env.OPENAI_API_KEY) {
-    console.log('Using OpenAI for analysis...');
+    logger.info('Using OpenAI for analysis...');
     analyses = await analyzeWithOpenAI(failures);
   } else {
-    console.log('No LLM API key found. Using local pattern-based analysis.');
-    console.log('Set ANTHROPIC_API_KEY or OPENAI_API_KEY for AI-powered analysis.\n');
+    logger.info('No LLM API key found. Using local pattern-based analysis.');
+    logger.info('Set ANTHROPIC_API_KEY or OPENAI_API_KEY for AI-powered analysis.\n');
     analyses = localAnalysis(failures);
   }
 
   printReport(analyses);
 }
 
-main().catch(console.error);
+main().catch((e) => logger.error(String(e)));

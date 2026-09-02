@@ -1,5 +1,6 @@
 import { Page, expect } from '@playwright/test';
 import { PerformanceBudget, PerformanceMetrics } from './types';
+import logger from '../utils/logger';
 
 /**
  * Performance helper — measures Web Vitals and asserts against budgets.
@@ -115,12 +116,12 @@ export class PerformanceHelper {
 
   /** Print metrics to console (useful for debugging) */
   printMetrics(metrics: PerformanceMetrics): void {
-    console.log(`  TTFB:            ${metrics.ttfb.toFixed(0)}ms`);
-    console.log(`  FCP:             ${metrics.fcp.toFixed(0)}ms`);
-    console.log(`  DOM Interactive: ${metrics.domInteractive.toFixed(0)}ms`);
-    console.log(`  DCL:             ${metrics.domContentLoaded.toFixed(0)}ms`);
-    console.log(`  Load Complete:   ${metrics.loadComplete.toFixed(0)}ms`);
-    console.log(`  Resources:       ${metrics.resourceCount}`);
-    console.log(`  Transfer Size:   ${(metrics.transferSize / 1024).toFixed(0)}KB`);
+    logger.info(`TTFB: ${metrics.ttfb.toFixed(0)}ms`);
+    logger.info(`FCP: ${metrics.fcp.toFixed(0)}ms`);
+    logger.info(`DOM Interactive: ${metrics.domInteractive.toFixed(0)}ms`);
+    logger.info(`DCL: ${metrics.domContentLoaded.toFixed(0)}ms`);
+    logger.info(`Load Complete: ${metrics.loadComplete.toFixed(0)}ms`);
+    logger.info(`Resources: ${metrics.resourceCount}`);
+    logger.info(`Transfer Size: ${(metrics.transferSize / 1024).toFixed(0)}KB`);
   }
 }
